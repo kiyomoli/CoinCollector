@@ -16,6 +16,7 @@ public class Enemy extends Sprite {
 		this.setxVelocity(ENEMY_SPEED);
 		this.setyVelocity(ENEMY_SPEED);
 		setRandomPosition(panelWidth, panelHeight);
+		//TO DO: set speed random out of -1 and 1 options
 		resetToInitialPosition();
 		//try and make not overlapping??
 		//location not too close to the centre

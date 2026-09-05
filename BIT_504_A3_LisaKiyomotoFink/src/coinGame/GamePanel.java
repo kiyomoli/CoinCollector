@@ -9,6 +9,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -75,6 +76,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		enemies.clear();
 		for (int i=0; i<10; i++) {
 			enemies.add(new Enemy(PANEL_WIDTH, PANEL_HEIGHT));
+			for (Enemy enemy: enemies) {
+				enemy.setxVelocity(ThreadLocalRandom.current().nextBoolean() ? 1 : -1);
+				enemy.setyVelocity(ThreadLocalRandom.current().nextBoolean() ? 1 : -1);
+			}	
 		}
 		coins.clear();
 		for (int i=0; i<10; i++) {
@@ -154,6 +159,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 			if (gameState == GameState.Initialising) {
 				gameState = GameState.Playing;
 			}
+			else if (gameState == GameState.GameWon || gameState == GameState.GameOver) {
+		        createObjects(); // Re-create/reset ball, paddles, and scores
+		        gameState = GameState.Playing;
+		        if (!timer.isRunning()) {
+		            timer.start(); // Restart timer if it was stopped in GameOver
+		        }
+		}
 		}
 		//|| gameState == GameState.GameWon || gameState == GameState.GameOver)
 		if(event.getKeyCode() == KeyEvent.VK_UP) {
@@ -253,9 +265,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		g.setColor(Color.WHITE);
 		//String enterGame = "**PRESS ENTER TO START**";
 		String enterGame = "**Press ENTER to START**";
+		String test = "Test message here";
 		if (gameState == GameState.Initialising) {
 			g.setFont(scoreFont);
 			g.drawString(enterGame, xPadding, yPadding);
+			fontSize = 30; //doesn't change the font size??
+			g.drawString(test, xPadding + 75, yPadding + 50);
 		}
 	}
 	
@@ -266,9 +281,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
 		g.setColor(Color.WHITE);
 		String gameWon = "**ROUND WON**";
+		String continueGame = "Press ENTER to CONTINUE";
 		if (gameState == GameState.GameWon) {
 			g.setFont(scoreFont);
 			g.drawString(gameWon, xPadding, yPadding);
+			fontSize = 30;
+			g.drawString(continueGame, xPadding + 75, yPadding + 50);
 		}
 
 		}
@@ -280,9 +298,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
 		g.setColor(Color.WHITE);
 		String gameOver = "**GAME OVER**";
+		String restart = "Press ENTER to RESTART";
 		if (gameState == GameState.GameOver) {
 			g.setFont(scoreFont);
 			g.drawString(gameOver, xPadding, yPadding);
+			fontSize = 30;
+			g.drawString(restart, xPadding + 75, yPadding + 50);
 		}
 
 		}
