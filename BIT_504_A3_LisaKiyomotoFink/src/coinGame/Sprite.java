@@ -21,7 +21,6 @@ public class Sprite {
 	Random random = new Random();
 	int randomXPosition;
 	int randomYPosition;
-	//TO FIX: coin still starting semi outside the screen???
 	
 	//getter methods
 	
@@ -111,14 +110,5 @@ public class Sprite {
 		this.colour = colour;
 	}
 	
-	//set random position
-	
-	public void setRandomPosition(int panelWidth, int panelHeight) {
-        int randomXPosition = random.nextInt(panelWidth - this.width);
-        int randomYPosition = random.nextInt(panelHeight - this.height);
-        setInitialPosition(randomXPosition, randomYPosition);
-    }
-	
-
 
 }

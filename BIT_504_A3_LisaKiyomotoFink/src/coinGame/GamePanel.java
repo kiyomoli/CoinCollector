@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -14,13 +15,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-import coinGame.GameState;
-import coinGame.Sprite;
-
 public class GamePanel extends JPanel implements ActionListener, KeyListener{
 	
 	final Color BACKGROUND_COLOUR = Color.BLACK;
-	//Black or Dark grey??
 	private final static int TIMER_DELAY = 5;
 	public final static int PANEL_WIDTH = 800;
 	public final static int PANEL_HEIGHT = 600;
@@ -34,6 +31,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 	int playerLives = 5;
 	private long lastCollisionTime = 0;
 	private final long IMMUNITY_DURATION = 3000;
+	
+	public final static int CENTRE_ZONE_WIDTH = 150;
+	public final static int CENTRE_ZONE_HEIGHT = 150;
+	public int centreZoneX = (PANEL_WIDTH/2)-(CENTRE_ZONE_WIDTH/2);
+	public int centreZoneY = (PANEL_HEIGHT/2) - (CENTRE_ZONE_HEIGHT/2);
+	Rectangle centreZone = new Rectangle(centreZoneX, centreZoneY, CENTRE_ZONE_WIDTH, CENTRE_ZONE_HEIGHT);
 
 	public GamePanel() {
 		setBackground(BACKGROUND_COLOUR);
@@ -60,6 +63,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 			enemyCollision();
 			break;		
 		}
+		case Paused: {
+			break;
+		}
 		case GameOver: {
 			timer.stop();
 			break;
@@ -79,11 +85,23 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 			for (Enemy enemy: enemies) {
 				enemy.setxVelocity(ThreadLocalRandom.current().nextBoolean() ? 1 : -1);
 				enemy.setyVelocity(ThreadLocalRandom.current().nextBoolean() ? 1 : -1);
+				int attempts = 0; //500 attempts cap to stop it lagging on start up/getting stuck in the while loop forever
+				while (enemy.getRectangle().intersects(centreZone) && attempts < 500) {
+					enemy.setRandomEnemyPosition(PANEL_WIDTH, PANEL_HEIGHT);
+					attempts ++;
+				}
 			}	
 		}
 		coins.clear();
 		for (int i=0; i<10; i++) {
 			coins.add(new Coin(PANEL_WIDTH, PANEL_HEIGHT));
+			for (Coin coin: coins) {
+				int attempts = 0;
+				while (coin.getRectangle().intersects(centreZone) && attempts < 500){
+					coin.setRandomCoinPosition(PANEL_WIDTH, PANEL_HEIGHT);
+					attempts ++;
+				}
+			}
 		}
 		
 	}
@@ -115,10 +133,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		for (Enemy enemy: enemies) {
 			if(player.getRectangle().intersects(enemy.getRectangle())){
 				player.setColour(Color.MAGENTA);
-				//g.setColor(Color.RED);
 				lastCollisionTime = currentTime;
 				playerLives--;
-				System.out.println("Lives Remaining: " + playerLives);
+				//System.out.println("Lives Remaining: " + playerLives);
+				break;
 			}
 		}
 		if (currentTime - lastCollisionTime > IMMUNITY_DURATION) {
@@ -133,11 +151,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 	public void collectCoin() {
 		for (int i = coins.size() - 1; i >= 0; i--) {
 	        Coin coin = coins.get(i);
-	        
 	        if (player.getRectangle().intersects(coin.getRectangle())) {
 	            coins.remove(i);       
 	            playerScore++; 
-	            System.out.println("Score: " + playerScore + " | Coins remaining: " + coins.size());
+	            //System.out.println("Score: " + playerScore + " | Coins remaining: " + coins.size());
 	        }
 	    }
 		if (coins.isEmpty()) {
@@ -147,27 +164,40 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 
 	@Override
 	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
+		//not used
 		
 	}
 
 	@Override
 	public void keyPressed(KeyEvent event) {
-		//press space to pause?
-		//reset game/new round?
 		if(event.getKeyCode() == KeyEvent.VK_ENTER){
 			if (gameState == GameState.Initialising) {
 				gameState = GameState.Playing;
 			}
 			else if (gameState == GameState.GameWon || gameState == GameState.GameOver) {
-		        createObjects(); // Re-create/reset ball, paddles, and scores
-		        gameState = GameState.Playing;
+				createObjects();
+				playerScore = 0;
+				playerLives = 5;
+				//resets player score and lives
+				//without the reset, could play it longer with each game becoming a 'round'
+				gameState = GameState.Initialising;
 		        if (!timer.isRunning()) {
-		            timer.start(); // Restart timer if it was stopped in GameOver
-		        }
+		            timer.start(); // Restart timer if it was stopped in GameOver	
+			}
+			}
 		}
+		if(event.getKeyCode() == KeyEvent.VK_SPACE) {
+			if (gameState == GameState.Playing) {
+				gameState = GameState.Paused;
+				timer.stop();
+				repaint();
+			}
+			else if (gameState == GameState.Paused) {
+				gameState = GameState.Playing;
+				timer.start();
+				repaint();
+			}
 		}
-		//|| gameState == GameState.GameWon || gameState == GameState.GameOver)
 		if(event.getKeyCode() == KeyEvent.VK_UP) {
 			player.setyVelocity(-2);
 		}
@@ -216,9 +246,15 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 	
 	//painting methods
 	
+	// for testing
+	/*private void paintCentreZone(Graphics g, Rectangle rectangle) {
+		g.setColor(Color.GRAY);
+		g.fillRect(centreZoneX, centreZoneY, CENTRE_ZONE_WIDTH, CENTRE_ZONE_HEIGHT);
+	}*/
+	
 	private void paintSprite(Graphics g, Sprite sprite) {
 	     g.setColor(sprite.getColour());
-	     //circle looks nicer?
+	     //circle looks nicer - keep separate from coin painter in case want to change back to rectangle
 	     g.fillOval(sprite.getxPosition(), sprite.getyPosition(), sprite.getWidth(), sprite.getHeight());
 	}
 	
@@ -231,7 +267,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		int xPadding = 50;
 		int yPadding = 50;
 		int fontSize = 20; 
-		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
+		Font scoreFont = new Font("SansSerif", Font.BOLD, fontSize);
 		String score = "PLAYER SCORE: " + Integer.toString(playerScore);
 		g.setFont(scoreFont);
 		g.setColor(Color.WHITE);
@@ -242,8 +278,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		int xPadding = 50;
 		int yPadding = 50;
 		int fontSize = 20;
-		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
-		g.setColor(Color.WHITE);
+		Font scoreFont = new Font("SansSerif", Font.BOLD, fontSize);
+		
+		long currentTime = System.currentTimeMillis();
+	    if (currentTime - lastCollisionTime <= IMMUNITY_DURATION) {
+	        g.setColor(Color.RED); // Hit and lost a life
+	    } else {
+	        g.setColor(Color.WHITE);
+	    }
 		String lives = null;
 		switch (playerLives) {
 		case 0: lives = "PLAYER LIVES: "; break;
@@ -257,61 +299,88 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 		g.drawString(lives, xPadding, getHeight()- yPadding);
 	}
 	
-	private void paintEntryScreen(Graphics g) {
+	private void paintMainMessage(Graphics g) {
 		int xPadding = getWidth()/8;
 		int yPadding = getHeight()/2;
 		int fontSize = 50;
-		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
+		Font scoreFont = new Font("SansSerif", Font.BOLD, fontSize);
 		g.setColor(Color.WHITE);
-		//String enterGame = "**PRESS ENTER TO START**";
-		String enterGame = "**Press ENTER to START**";
-		String test = "Test message here";
+		g.setFont(scoreFont);
+		String message = "";
+		switch (gameState) {
+		case Initialising: { message = "**Press ENTER to START**";
+		break;
+		}
+		case Paused: { message = "**GAME PAUSED**";
+		break;
+		}
+		case GameWon: { message = "**GAME WON**";
+		xPadding = getWidth()/8 + 75;
+		break;
+		}
+		case GameOver: { message = "**GAME OVER**";
+		xPadding = getWidth()/8 + 75;
+		break;
+		}
+		default: 
+			return;
+		}
+		g.drawString(message, xPadding, yPadding);
+	}
+	
+	private void paintSubmessage(Graphics g) {
+		int xPadding = (getWidth()/8 + 75);
+		int yPadding = (getHeight()/2 + 50);
+		int fontSize = 30;
+		Font scoreFont = new Font("SansSerif", Font.ITALIC, fontSize);
+		g.setColor(Color.WHITE);
+		g.setFont(scoreFont);
+		String pauseInstruction = "Press SPACE to PAUSE";
+		String unpauseInstruction = "Press SPACE to PLAY";
+		String restart = "Press ENTER to RESTART";
 		if (gameState == GameState.Initialising) {
+			g.drawString(pauseInstruction, xPadding, yPadding);
+		}
+		else if (gameState == GameState.Paused) {
+			g.drawString(unpauseInstruction, xPadding, yPadding);
+		}
+		else if (gameState == GameState.GameOver || gameState == GameState.GameWon) {
 			g.setFont(scoreFont);
-			g.drawString(enterGame, xPadding, yPadding);
-			fontSize = 30; //doesn't change the font size??
-			g.drawString(test, xPadding + 75, yPadding + 50);
+			g.drawString(restart, xPadding, yPadding);
 		}
 	}
 	
-	private void paintGameWon(Graphics g) {
-		int xPadding = getWidth()/8;
-		int yPadding = getHeight()/2;
-		int fontSize = 75;
-		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
+	public void paintInstructions(Graphics g) {
+		int xPadding = (50);
+		int yPadding = (50);
+		int fontSize = 20;
+		Font scoreFont = new Font("SansSerif", Font.PLAIN, fontSize);
 		g.setColor(Color.WHITE);
-		String gameWon = "**ROUND WON**";
-		String continueGame = "Press ENTER to CONTINUE";
-		if (gameState == GameState.GameWon) {
-			g.setFont(scoreFont);
-			g.drawString(gameWon, xPadding, yPadding);
-			fontSize = 30;
-			g.drawString(continueGame, xPadding + 75, yPadding + 50);
+		g.setFont(scoreFont);
+		String gameInstructions = "  COIN COLLECTOR GAME";
+		String gameInstructions1 = "* Move using the arrow keys";
+		String gameInstructions2 = "* Collect all yellow coins to win";
+		String gameInstructions3 = "* Avoid the red enemies";
+		String gameInstructions4 = "* Recieve 3 seconds immunity after an enemy hit";
+		if (gameState == GameState.Initialising) {
+			g.drawString(gameInstructions, xPadding, yPadding);
+			g.drawString(gameInstructions1, xPadding, yPadding + 30);
+			g.drawString(gameInstructions2, xPadding, yPadding + 60);
+			g.drawString(gameInstructions3, xPadding, yPadding + 90);
+			g.drawString(gameInstructions4, xPadding, yPadding + 120);
 		}
-
+		else if (gameState == GameState.Paused) {
+			g.drawString(gameInstructions, xPadding, yPadding);
+			g.drawString(gameInstructions1, xPadding, yPadding + 30);
+			g.drawString(gameInstructions2, xPadding, yPadding + 60);
+			g.drawString(gameInstructions3, xPadding, yPadding + 90);
+			g.drawString(gameInstructions4, xPadding, yPadding + 120);
 		}
-	
-	private void paintGameOver(Graphics g) {
-		int xPadding = getWidth()/8;
-		int yPadding = getHeight()/2;
-		int fontSize = 75;
-		Font scoreFont = new Font("Serif", Font.BOLD, fontSize);
-		g.setColor(Color.WHITE);
-		String gameOver = "**GAME OVER**";
-		String restart = "Press ENTER to RESTART";
-		if (gameState == GameState.GameOver) {
-			g.setFont(scoreFont);
-			g.drawString(gameOver, xPadding, yPadding);
-			fontSize = 30;
-			g.drawString(restart, xPadding + 75, yPadding + 50);
-		}
-
-		}
+	}
 	
 	@Override
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		paintEntryScreen(g);
 	     if(gameState != GameState.Initialising) {
 	    	 //objects from background to foreground as follows
 	    	 if (coins!= null) {
@@ -328,10 +397,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener{
 	        	paintSprite(g, player); 
 	         }
 	     }
+	     paintInstructions(g);
 	     paintScore(g);
 	     paintLives(g);
-	     paintGameWon(g);
-	     paintGameOver(g);
+	     paintMainMessage(g);
+	     paintSubmessage(g);
+	     //TEST paintCentreZone(g, centreZone);
 		}
 
 }

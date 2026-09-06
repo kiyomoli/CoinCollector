@@ -15,11 +15,15 @@ public class Enemy extends Sprite {
 		this.setHeight(ENEMY_HEIGHT);
 		this.setxVelocity(ENEMY_SPEED);
 		this.setyVelocity(ENEMY_SPEED);
-		setRandomPosition(panelWidth, panelHeight);
-		//TO DO: set speed random out of -1 and 1 options
+		setRandomEnemyPosition(panelWidth, panelHeight);
 		resetToInitialPosition();
 		//try and make not overlapping??
-		//location not too close to the centre
 	}
+	
+	public void setRandomEnemyPosition(int panelWidth, int panelHeight) {
+        int randomXPosition = random.nextInt(panelWidth - getWidth());
+        int randomYPosition = random.nextInt(panelHeight - getHeight());
+        setInitialPosition(randomXPosition, randomYPosition);
+    }
 
 }

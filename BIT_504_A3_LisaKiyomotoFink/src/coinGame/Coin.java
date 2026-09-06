@@ -14,10 +14,15 @@ public class Coin extends Sprite {
 		this.setHeight(COIN_HEIGHT);
 		this.setxVelocity(0);
 		this.setyVelocity(0);
-		setRandomPosition(panelWidth, panelHeight);
+		setRandomCoinPosition(panelWidth, panelHeight);
 		resetToInitialPosition();
-		//try and make not overlapping??
-		//location not too close to the centre
 	}
-
+	
+	// position not right next to the edges of the screen
+	public void setRandomCoinPosition(int panelWidth, int panelHeight) {
+        int randomXPosition = random.nextInt(30, panelWidth - getWidth()-30);
+        int randomYPosition = random.nextInt(30, panelHeight - getHeight()-30);
+        setInitialPosition(randomXPosition, randomYPosition);
+	}
+		
 }
